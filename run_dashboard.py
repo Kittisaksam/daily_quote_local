@@ -1,26 +1,14 @@
-"""Run the Streamlit dashboard."""
-import subprocess
-import sys
+"""Dashboard Entry Point
 
+This is the entry point for running the Streamlit dashboard.
 
-def main():
-    """Run the Streamlit dashboard."""
-    print("Starting Daily Quote Bot Dashboard...")
-    print("Dashboard will open in your browser at http://localhost:8501")
-    print("\nPress Ctrl+C to stop the dashboard\n")
+Usage:
+    python run_dashboard.py
+    or
+    streamlit run run_dashboard.py
+"""
 
-    try:
-        # Run streamlit
-        subprocess.run(
-            [sys.executable, "-m", "streamlit", "run", "dashboard/app.py"],
-            check=True
-        )
-    except KeyboardInterrupt:
-        print("\nDashboard stopped.")
-    except subprocess.CalledProcessError as e:
-        print(f"Error running dashboard: {e}")
-        sys.exit(1)
-
+from scripts.run_dashboard import main
 
 if __name__ == "__main__":
     main()

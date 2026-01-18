@@ -48,10 +48,14 @@ daily_quote/
 ├── deploy_scripts/               # Deployment scripts
 │   ├── deploy_gcf.sh            # Google Cloud Functions deploy
 │   └── pythonanywhere_run.py    # PythonAnywhere entry point
-├── gcf_main.py                   # Google Cloud Functions entry point
+├── scripts/                      # Application scripts ⭐
+│   ├── gcf_main.py              # GCF implementation
+│   ├── main.py                  # Bot implementation
+│   └── run_dashboard.py         # Dashboard implementation
+├── gcf_main.py                   # GCF entry point (imports scripts/gcf_main.py)
 ├── gcf_requirements.txt          # GCF dependencies
-├── main.py                       # Local bot entry point
-├── run_dashboard.py              # Dashboard entry point
+├── main.py                       # Local bot entry point (imports scripts/main.py)
+├── run_dashboard.py              # Dashboard entry point (imports scripts/run_dashboard.py)
 ├── requirements.txt              # Core dependencies
 ├── README.md                     # This file
 ├── CLAUDE.md                     # AI assistant documentation

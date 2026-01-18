@@ -36,20 +36,17 @@ def run_scheduled():
     from config.settings import load_config
 
     try:
-        # Load configuration
         config = load_config()
         logger.info(f"Configuration loaded: {config.schedule_window}")
 
-        # Create scheduler instance
         scheduler = get_scheduler()
 
-        # Send morning quote
-        if config.schedule_window in ['morning', 'both']:
+        # Send quotes based on configuration
+        if config.schedule_window in ('morning', 'both'):
             logger.info("Sending morning quote...")
             scheduler.send_daily_quote('morning')
 
-        # Send evening quote
-        if config.schedule_window in ['evening', 'both']:
+        if config.schedule_window in ('evening', 'both'):
             logger.info("Sending evening quote...")
             scheduler.send_daily_quote('evening')
 
@@ -79,20 +76,25 @@ def run_bot():
         sys.exit(1)
 
 
-if __name__ == "__main__":
-    # Check command line argument
-    if len(sys.argv) > 1:
-        mode = sys.argv[1]
-        if mode == "scheduled":
-            run_scheduled()
-        elif mode == "bot":
-            run_bot()
-        else:
-            print(f"Unknown mode: {mode}")
-            print("Usage: python pythonanywhere_run.py [scheduled|bot]")
-            sys.exit(1)
-    else:
+def main():
+    """Main entry point for command-line execution."""
+    if len(sys.argv) <= 1:
         print("Please specify mode:")
         print("  python pythonanywhere_run.py scheduled  - Send quotes and exit")
         print("  python pythonanywhere_run.py bot         - Run bot listener")
         sys.exit(1)
+
+    mode = sys.argv[1]
+
+    if mode == "scheduled":
+        run_scheduled()
+    elif mode == "bot":
+        run_bot()
+    else:
+        print(f"Unknown mode: {mode}")
+        print("Usage: python pythonanywhere_run.py [scheduled|bot]")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

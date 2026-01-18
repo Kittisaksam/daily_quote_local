@@ -2,13 +2,26 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
+
 from dotenv import load_dotenv
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 
-# Base directory
+# Base directory (parent of config folder)
 BASE_DIR = Path(__file__).parent.parent
+
+# Valid configuration values
+VALID_SCHEDULE_WINDOWS = ("morning", "evening", "both")
+VALID_LANGUAGES = ("en", "th", "both")
+
+# Default time windows
+DEFAULT_MORNING_START = "07:00"
+DEFAULT_MORNING_END = "09:00"
+DEFAULT_EVENING_START = "18:00"
+DEFAULT_EVENING_END = "20:00"
+
 
 @dataclass
 class Config:
@@ -23,10 +36,10 @@ class Config:
 
     # Schedule Configuration
     schedule_window: str  # morning, evening, or both
-    morning_start: str = "07:00"
-    morning_end: str = "09:00"
-    evening_start: str = "18:00"
-    evening_end: str = "20:00"
+    morning_start: str = DEFAULT_MORNING_START
+    morning_end: str = DEFAULT_MORNING_END
+    evening_start: str = DEFAULT_EVENING_START
+    evening_end: str = DEFAULT_EVENING_END
 
     # Quote Language
     quote_language: str = "both"  # en, th, or both
@@ -37,49 +50,71 @@ class Config:
 
     def __post_init__(self):
         """Validate configuration after initialization."""
-        # Validate Telegram token
+        self._validate_required_fields()
+        self._validate_schedule_window()
+        self._validate_quote_language()
+        self._ensure_data_directories()
+
+    def _validate_required_fields(self):
+        """Validate that required fields are set."""
+        errors = []
+
         if not self.telegram_bot_token or self.telegram_bot_token == "your_bot_token_here":
-            raise ValueError("TELEGRAM_BOT_TOKEN is not configured")
+            errors.append("TELEGRAM_BOT_TOKEN is not configured")
 
-        # Validate Chat ID
         if not self.telegram_chat_id or self.telegram_chat_id == "your_chat_id_here":
-            raise ValueError("TELEGRAM_CHAT_ID is not configured")
+            errors.append("TELEGRAM_CHAT_ID is not configured")
 
-        # Validate Anthropic API key
         if not self.anthropic_api_key or self.anthropic_api_key == "your_anthropic_key_here":
-            raise ValueError("ANTHROPIC_API_KEY is not configured")
+            errors.append("ANTHROPIC_API_KEY is not configured")
 
-        # Validate schedule window
-        valid_windows = ["morning", "evening", "both"]
-        if self.schedule_window not in valid_windows:
-            raise ValueError(f"SCHEDULE_WINDOW must be one of {valid_windows}")
+        if errors:
+            raise ValueError("; ".join(errors))
 
-        # Validate quote language
-        valid_languages = ["en", "th", "both"]
-        if self.quote_language not in valid_languages:
-            raise ValueError(f"QUOTE_LANGUAGE must be one of {valid_languages}")
+    def _validate_schedule_window(self):
+        """Validate schedule window is a valid value."""
+        if self.schedule_window not in VALID_SCHEDULE_WINDOWS:
+            raise ValueError(
+                f"SCHEDULE_WINDOW must be one of {VALID_SCHEDULE_WINDOWS}, "
+                f"got '{self.schedule_window}'"
+            )
 
-        # Ensure data directory exists
+    def _validate_quote_language(self):
+        """Validate quote language is a valid value."""
+        if self.quote_language not in VALID_LANGUAGES:
+            raise ValueError(
+                f"QUOTE_LANGUAGE must be one of {VALID_LANGUAGES}, "
+                f"got '{self.quote_language}'"
+            )
+
+    def _ensure_data_directories(self):
+        """Ensure data directories exist."""
         self.quotes_file.parent.mkdir(parents=True, exist_ok=True)
         self.stats_file.parent.mkdir(parents=True, exist_ok=True)
 
 
 def load_config() -> Config:
-    """Load configuration from environment variables."""
+    """Load configuration from environment variables.
+
+    Returns:
+        Config object with values from environment variables
+    """
     return Config(
         telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
         telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""),
         anthropic_api_key=os.getenv("ANTHROPIC_API_KEY", ""),
         schedule_window=os.getenv("SCHEDULE_WINDOW", "both"),
-        morning_start=os.getenv("MORNING_START", "07:00"),
-        morning_end=os.getenv("MORNING_END", "09:00"),
-        evening_start=os.getenv("EVENING_START", "18:00"),
-        evening_end=os.getenv("EVENING_END", "20:00"),
+        morning_start=os.getenv("MORNING_START", DEFAULT_MORNING_START),
+        morning_end=os.getenv("MORNING_END", DEFAULT_MORNING_END),
+        evening_start=os.getenv("EVENING_START", DEFAULT_EVENING_START),
+        evening_end=os.getenv("EVENING_END", DEFAULT_EVENING_END),
         quote_language=os.getenv("QUOTE_LANGUAGE", "both"),
     )
 
 
 # Global config instance
+config: Optional[Config] = None
+
 try:
     config = load_config()
 except ValueError:

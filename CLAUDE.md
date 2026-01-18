@@ -26,23 +26,30 @@ This document provides context for Claude AI assistants working on the Daily Quo
    - `quotes.json` - Local quote cache
    - `stats.json` - Statistics and quote history
 
-4. **Cloud Functions** (`gcf_main.py`)
-   - HTTP-triggered function for Google Cloud Functions
-   - Stateless design (no database/scheduler)
-   - Supports query parameters: `period=morning|evening|both|random`
+4. **Scripts** (`scripts/`) ⭐
+   - `gcf_main.py` - Google Cloud Functions implementation
+   - `main.py` - Local bot implementation
+   - `run_dashboard.py` - Dashboard implementation
 
-5. **Dashboard** (`dashboard/`)
+5. **Entry Points** (root level)
+   - `gcf_main.py` - Imports from `scripts/gcf_main.py` for GCF deployment
+   - `main.py` - Imports from `scripts/main.py` for local running
+   - `run_dashboard.py` - Imports from `scripts/run_dashboard.py` for dashboard
+
+6. **Dashboard** (`dashboard/`)
    - Streamlit-based UI for monitoring and manual operations
 
 ### Deployment Options
 
 1. **Google Cloud Functions** (Production)
    - Entry point: `gcf_main.py` → `send_daily_quote()`
+   - Implementation: `scripts/gcf_main.py`
    - Scheduler: Cloud Scheduler (HTTP trigger)
    - Cost: ~$0.18/month (Free Tier + Anthropic API)
 
 2. **Local** (Development)
-   - Entry point: `main.py` → `run_bot()`
+   - Entry point: `main.py`
+   - Implementation: `scripts/main.py`
    - Scheduler: APScheduler (persistent via SQLite)
 
 3. **PythonAnywhere** (Alternative)

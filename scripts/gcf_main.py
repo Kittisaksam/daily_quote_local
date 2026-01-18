@@ -1,0 +1,192 @@
+"""Google Cloud Functions entry point for Daily Quote Bot.
+
+This module handles HTTP requests from Google Cloud Scheduler to send quotes.
+Stateless implementation - no database or persistent scheduler used.
+"""
+import logging
+import random
+from datetime import datetime
+
+from flask import jsonify, request
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Import our bot modules
+from bot.quote_generator import get_quote
+from bot.telegram_bot import send_quote_sync
+from config.settings import load_config
+
+# Random scheduling configuration
+RANDOM_HOUR_MIN = 10
+RANDOM_HOUR_MAX = 17
+
+
+def should_send_random_quote(hour: int) -> bool:
+    """Determine if we should send a quote at this hour (for random scheduling).
+
+    Uses the date as a seed so we get the same result for all hours on the same day.
+    Only ONE hour per day will return True.
+
+    Args:
+        hour: Hour of day (0-23)
+
+    Returns:
+        True if this is the selected hour for today, False otherwise
+    """
+    today = datetime.now().date()
+    # Use date as seed to get consistent random number across all hours today
+    random.seed(today.isoformat())
+    selected_hour = random.randint(RANDOM_HOUR_MIN, RANDOM_HOUR_MAX)
+
+    logger.info(f"Random quote scheduled for today at {selected_hour}:00, current hour: {hour}")
+    return hour == selected_hour
+
+
+def send_quote_for_period(time_period: str, config) -> dict:
+    """Send a quote for a specific time period.
+
+    Args:
+        time_period: 'morning', 'evening', or 'random'
+        config: Configuration object
+
+    Returns:
+        Dictionary with 'period', 'status', and optional 'error' or 'hour' keys
+    """
+    logger.info(f"Sending {time_period} quote...")
+
+    try:
+        quote = get_quote(language=config.quote_language)
+        success = send_quote_sync(quote, time_period=time_period)
+
+        if success:
+            logger.info(f"{time_period.capitalize()} quote sent successfully")
+            return {'period': time_period, 'status': 'success'}
+        else:
+            logger.error(f"Failed to send {time_period} quote")
+            return {'period': time_period, 'status': 'failed', 'error': 'Send failed'}
+
+    except Exception as e:
+        logger.error(f"Error sending {time_period} quote: {e}")
+        return {'period': time_period, 'status': 'failed', 'error': str(e)}
+
+
+def check_and_send_random_quote(hour: int, config) -> dict:
+    """Check if random quote should be sent and send it if appropriate.
+
+    Args:
+        hour: Current hour of day
+        config: Configuration object
+
+    Returns:
+        Dictionary with result information
+    """
+    logger.info(f"Checking random quote schedule for hour {hour}...")
+
+    if should_send_random_quote(hour):
+        return send_quote_for_period('random', config)
+
+    logger.info("Not the randomly selected hour for today, skipping...")
+    return {'period': 'random', 'hour': hour, 'status': 'skipped', 'message': 'Not selected hour'}
+
+
+def send_daily_quote(request):
+    """Cloud Function entry point.
+
+    This function is triggered by Google Cloud Scheduler via HTTP request.
+    It's stateless - doesn't use database or scheduler.
+
+    Args:
+        request: Flask request object from Cloud Scheduler
+
+    Returns:
+        JSON response with status
+    """
+    logger.info("=" * 50)
+    logger.info("Cloud Function triggered: send_daily_quote")
+    logger.info("=" * 50)
+
+    try:
+        config = load_config()
+        logger.info(f"Configuration loaded: {config.schedule_window}")
+
+        time_period = request.args.get('period', 'both')
+        current_hour = request.args.get('hour', datetime.now().hour, type=int)
+
+        results = []
+
+        # Process morning quote
+        if time_period in ('morning', 'both') and config.schedule_window in ('morning', 'both'):
+            results.append(send_quote_for_period('morning', config))
+
+        # Process evening quote
+        if time_period in ('evening', 'both') and config.schedule_window in ('evening', 'both'):
+            results.append(send_quote_for_period('evening', config))
+
+        # Process random quote
+        if time_period == 'random':
+            results.append(check_and_send_random_quote(current_hour, config))
+
+        logger.info(f"Cloud Function completed: {results}")
+
+        # Determine response status
+        failed_count = sum(1 for r in results if r['status'] == 'failed')
+        return jsonify({
+            'status': 'success' if failed_count == 0 else 'partial_success',
+            'message': f'Sent {len(results) - failed_count}/{len(results)} quotes',
+            'results': results
+        }), 200 if failed_count == 0 else 207
+
+    except Exception as e:
+        logger.error(f"Error in Cloud Function: {e}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+
+def send_morning_quote(request):
+    """Send morning quote only.
+
+    Args:
+        request: Flask request object
+
+    Returns:
+        JSON response
+    """
+    # Modify request args to include period=morning
+    request.args = request.args.copy()
+    request.args['period'] = 'morning'
+    return send_daily_quote(request)
+
+
+def send_evening_quote(request):
+    """Send evening quote only.
+
+    Args:
+        request: Flask request object
+
+    Returns:
+        JSON response
+    """
+    # Modify request args to include period=evening
+    request.args = request.args.copy()
+    request.args['period'] = 'evening'
+    return send_daily_quote(request)
+
+
+def health_check(request):
+    """Health check endpoint.
+
+    Args:
+        request: Flask request object
+
+    Returns:
+        JSON response with health status
+    """
+    return jsonify({
+        'status': 'healthy',
+        'service': 'Daily Quote Bot',
+        'message': 'Cloud Function is running'
+    }), 200

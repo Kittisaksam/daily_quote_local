@@ -4,8 +4,11 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+
+import asyncio
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
+
 from config.settings import config
 from bot.quote_generator import get_quote
 
@@ -15,6 +18,19 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+# Default statistics structure
+DEFAULT_STATS = {
+    'total_quotes_sent': 0,
+    'local_quotes_sent': 0,
+    'ai_quotes_sent': 0,
+    'morning_quotes_sent': 0,
+    'evening_quotes_sent': 0,
+    'current_streak': 0,
+    'longest_streak': 0,
+    'last_sent': None,
+    'history': []
+}
 
 
 class StatsManager:
@@ -34,21 +50,11 @@ class StatsManager:
         Returns:
             Dictionary with statistics
         """
-        if self.stats_file.exists():
-            with open(self.stats_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        else:
-            return {
-                'total_quotes_sent': 0,
-                'local_quotes_sent': 0,
-                'ai_quotes_sent': 0,
-                'morning_quotes_sent': 0,
-                'evening_quotes_sent': 0,
-                'current_streak': 0,
-                'longest_streak': 0,
-                'last_sent': None,
-                'history': []
-            }
+        if not self.stats_file.exists():
+            return DEFAULT_STATS.copy()
+
+        with open(self.stats_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
 
     def save_stats(self, stats: dict):
         """Save statistics to file.
@@ -59,6 +65,47 @@ class StatsManager:
         with open(self.stats_file, 'w', encoding='utf-8') as f:
             json.dump(stats, f, ensure_ascii=False, indent=2)
 
+    def _update_streak(self, stats: dict, now: datetime):
+        """Update streak information.
+
+        Args:
+            stats: Statistics dictionary to update
+            now: Current datetime
+        """
+        if stats['last_sent']:
+            last_sent = datetime.fromisoformat(stats['last_sent']).date()
+            days_since = (now.date() - last_sent).days
+
+            if days_since == 1:
+                stats['current_streak'] += 1
+            elif days_since > 1:
+                stats['current_streak'] = 1
+        else:
+            stats['current_streak'] = 1
+
+        if stats['current_streak'] > stats['longest_streak']:
+            stats['longest_streak'] = stats['current_streak']
+
+    def _create_history_entry(self, quote: dict, time_period: str, now: datetime) -> dict:
+        """Create a history entry for a sent quote.
+
+        Args:
+            quote: Quote dictionary
+            time_period: Time period identifier
+            now: Current datetime
+
+        Returns:
+            History entry dictionary
+        """
+        return {
+            'timestamp': now.isoformat(),
+            'text': quote.get('text', '')[:100],
+            'author': quote.get('author', 'Unknown'),
+            'language': quote.get('language', 'en'),
+            'source': quote.get('source', 'local'),
+            'time_period': time_period
+        }
+
     def record_quote(self, quote: dict, time_period: str = "unknown"):
         """Record a sent quote.
 
@@ -67,54 +114,21 @@ class StatsManager:
             time_period: 'morning', 'evening', or 'unknown'
         """
         stats = self.load_stats()
+        now = datetime.now()
 
         # Update counters
         stats['total_quotes_sent'] += 1
+        stats['ai_quotes_sent' if quote.get('source') == 'ai' else 'local_quotes_sent'] += 1
 
-        if quote.get('source') == 'ai':
-            stats['ai_quotes_sent'] += 1
-        else:
-            stats['local_quotes_sent'] += 1
-
-        if time_period == 'morning':
-            stats['morning_quotes_sent'] += 1
-        elif time_period == 'evening':
-            stats['evening_quotes_sent'] += 1
+        if time_period in ('morning', 'evening'):
+            stats[f'{time_period}_quotes_sent'] += 1
 
         # Update streak
-        now = datetime.now()
-        today = now.date().isoformat()
-
-        if stats['last_sent']:
-            last_sent = datetime.fromisoformat(stats['last_sent']).date()
-            if (now.date() - last_sent).days == 1:
-                # Consecutive day
-                stats['current_streak'] += 1
-            elif (now.date() - last_sent).days > 1:
-                # Streak broken
-                stats['current_streak'] = 1
-        else:
-            stats['current_streak'] = 1
-
-        # Update longest streak
-        if stats['current_streak'] > stats['longest_streak']:
-            stats['longest_streak'] = stats['current_streak']
-
-        # Update last sent
+        self._update_streak(stats, now)
         stats['last_sent'] = now.isoformat()
 
         # Add to history (keep last 100)
-        history_entry = {
-            'timestamp': now.isoformat(),
-            'text': quote.get('text', '')[:100],  # Truncate long quotes
-            'author': quote.get('author', 'Unknown'),
-            'language': quote.get('language', 'en'),
-            'source': quote.get('source', 'local'),
-            'time_period': time_period
-        }
-        stats['history'].append(history_entry)
-
-        # Keep only last 100 entries
+        stats['history'].append(self._create_history_entry(quote, time_period, now))
         if len(stats['history']) > 100:
             stats['history'] = stats['history'][-100:]
 
@@ -123,6 +137,21 @@ class StatsManager:
 
 # Global stats manager
 stats_manager = StatsManager()
+
+
+# Helper functions
+
+
+def _format_quote_message(quote: dict) -> str:
+    """Format a quote for Telegram message.
+
+    Args:
+        quote: Quote dictionary with 'text' and 'author'
+
+    Returns:
+        Formatted message string
+    """
+    return f"🌟 *{quote['text']}*\n\n— {quote['author']}"
 
 
 async def send_quote_to_chat(quote: dict, time_period: str = "unknown") -> bool:
@@ -138,13 +167,9 @@ async def send_quote_to_chat(quote: dict, time_period: str = "unknown") -> bool:
     try:
         application = Application.builder().token(config.telegram_bot_token).build()
 
-        # Format message
-        text = f"🌟 *{quote['text']}*\n\n— {quote['author']}"
-
-        # Send message
         await application.bot.send_message(
             chat_id=config.telegram_chat_id,
-            text=text,
+            text=_format_quote_message(quote),
             parse_mode='Markdown'
         )
 
@@ -172,8 +197,6 @@ def send_quote_sync(quote: dict, time_period: str = "unknown") -> bool:
     Returns:
         True if successful, False otherwise
     """
-    import asyncio
-
     try:
         loop = asyncio.get_event_loop()
     except RuntimeError:
@@ -184,6 +207,7 @@ def send_quote_sync(quote: dict, time_period: str = "unknown") -> bool:
 
 
 # Telegram Bot Command Handlers
+
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start command."""
@@ -201,8 +225,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def quote_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /quote command."""
     quote = get_quote()
-    text = f"🌟 *{quote['text']}*\n\n— {quote['author']}"
-    await update.message.reply_text(text, parse_mode='Markdown')
+    await update.message.reply_text(_format_quote_message(quote), parse_mode='Markdown')
 
 
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -217,7 +240,7 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🌅 Morning Quotes: {stats['morning_quotes_sent']}\n"
         f"🌆 Evening Quotes: {stats['evening_quotes_sent']}\n"
         f"🔥 Current Streak: {stats['current_streak']} days\n"
-        f"🏆 Longest Streak: {stats['longest_streak']} days\n"
+        f"🏆 Longest Streak: {stats['longest_streak']} days"
     )
 
     if stats['last_sent']:
@@ -246,13 +269,15 @@ def run_bot():
     """Run the Telegram bot (blocking)."""
     application = Application.builder().token(config.telegram_bot_token).build()
 
-    # Add command handlers
-    application.add_handler(CommandHandler("start", start_command))
-    application.add_handler(CommandHandler("quote", quote_command))
-    application.add_handler(CommandHandler("stats", stats_command))
-    application.add_handler(CommandHandler("help", help_command))
+    # Register command handlers
+    for cmd, handler in [
+        ("start", start_command),
+        ("quote", quote_command),
+        ("stats", stats_command),
+        ("help", help_command),
+    ]:
+        application.add_handler(CommandHandler(cmd, handler))
 
-    # Start the bot
     logger.info("Starting Telegram bot...")
     application.run_polling(allowed_updates=["message"])
 
