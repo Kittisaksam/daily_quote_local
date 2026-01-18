@@ -1,59 +1,82 @@
 # Daily Quote Telegram Bot 🌟
 
-A Python-based Telegram bot that sends AI-generated inspirational quotes daily, with optional Streamlit dashboard for viewing statistics and managing the bot.
+A Python-based Telegram bot that sends AI-generated inspirational quotes daily, with support for multiple deployment platforms including Google Cloud Functions and PythonAnywhere.
 
-## Features
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?logo=telegram&logoColor=white)](https://t.me/)
 
-- 🤖 **AI-Generated Quotes**: Uses GLM API (Zhipu AI) to generate unique inspirational quotes
+## ✨ Features
+
+- 🤖 **AI-Generated Quotes**: Uses Anthropic Claude API to generate unique inspirational quotes
 - 💾 **Local Quote Cache**: Stores quotes locally for faster access
-- 📅 **Flexible Scheduling**: Morning (7-9 AM) and/or Evening (6-8 PM) delivery
-- 📊 **Statistics Dashboard**: Track your quotes, streaks, and progress
+- 📅 **Flexible Scheduling**:
+  - Morning (7-9 AM)
+  - Evening (6-8 PM)
+  - Random daily scheduling (10 AM - 5 PM)
+- 📊 **Statistics Dashboard**: Track quotes, streaks, and progress
 - 🌏 **Multi-Language**: Support for English and Thai quotes
 - 💬 **Telegram Commands**: Interactive bot commands for on-demand quotes
+- ☁️ **Cloud Deployments**:
+  - Google Cloud Functions (Free Tier)
+  - PythonAnywhere
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 daily_quote/
-├── bot/
+├── bot/                          # Bot core logic
 │   ├── __init__.py
-│   ├── telegram_bot.py      # Telegram bot logic
-│   ├── quote_generator.py   # GLM API integration
-│   └── scheduler.py         # Task scheduling (APScheduler)
-├── data/
-│   ├── quotes.json          # Local quotes cache
-│   └── stats.json           # Quote statistics
-├── dashboard/
+│   ├── telegram_bot.py          # Telegram bot integration
+│   ├── quote_generator.py       # AI quote generation
+│   └── scheduler.py             # Local task scheduling
+├── config/                       # Configuration management
 │   ├── __init__.py
-│   └── app.py               # Streamlit dashboard
-├── config/
+│   └── settings.py
+├── data/                         # Data files
+│   ├── quotes.json              # Local quotes cache
+│   └── stats.json               # Statistics tracking
+├── dashboard/                    # Streamlit dashboard
 │   ├── __init__.py
-│   └── settings.py          # Configuration management
-├── main.py                  # Entry point for bot
-├── run_dashboard.py         # Entry point for dashboard
-├── requirements.txt
-└── .env                     # API keys and tokens
+│   └── app.py
+├── docs/                         # Documentation 📚
+│   ├── DEPLOYMENT_GUIDE.md      # Google Cloud deployment guide
+│   ├── TESTING_GUIDE.md         # Testing guide
+│   ├── COST_BREAKDOWN.md        # Cost analysis
+│   ├── GOOGLE_CLOUD_DEPLOY.md   # Original GCF guide
+│   └── PYTHONANYWHERE_DEPLOY.md # PythonAnywhere guide
+├── deploy_scripts/               # Deployment scripts
+│   ├── deploy_gcf.sh            # Google Cloud Functions deploy
+│   └── pythonanywhere_run.py    # PythonAnywhere entry point
+├── gcf_main.py                   # Google Cloud Functions entry point
+├── gcf_requirements.txt          # GCF dependencies
+├── main.py                       # Local bot entry point
+├── run_dashboard.py              # Dashboard entry point
+├── requirements.txt              # Core dependencies
+├── README.md                     # This file
+├── CLAUDE.md                     # AI assistant documentation
+└── .env                         # Environment variables (not in git)
 ```
 
-## Setup Instructions
+## 🚀 Quick Start
 
 ### 1. Prerequisites
 
-- Python 3.8 or higher
+- Python 3.11 or higher
 - Telegram account
-- GLM API key (Zhipu AI) - Get from https://open.bigmodel.cn/
+- Anthropic API key - Get from https://console.anthropic.com/
 
 ### 2. Create Telegram Bot
 
 1. Open Telegram and search for [@BotFather](https://t.me/BotFather)
 2. Send `/newbot` command
 3. Follow the instructions to create your bot
-4. Copy the bot token (looks like `123456789:ABCdefGHIjklMNOpqrsTUVwxyz`)
+4. Copy the bot token (looks like `123456789:ABCdefGHI...`)
 
 ### 3. Get Your Chat ID
 
 1. Start a conversation with your bot
-2. Visit `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates` in your browser
+2. Visit `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
 3. Find your chat ID in the response (looks like `123456789`)
 
 ### 4. Install Dependencies
@@ -64,29 +87,35 @@ pip install -r requirements.txt
 
 ### 5. Configure Environment Variables
 
-1. Copy `.env.example` to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
+```bash
+# Copy example env file
+cp .env.example .env
 
-2. Edit `.env` and fill in your values:
-   ```env
-   TELEGRAM_BOT_TOKEN=your_actual_bot_token_here
-   TELEGRAM_CHAT_ID=your_actual_chat_id_here
-   GLM_API_KEY=your_actual_glm_api_key_here
+# Edit .env with your values
+nano .env  # or use your preferred editor
+```
 
-   # Optional: Customize schedule
-   SCHEDULE_WINDOW=both  # Options: morning, evening, both
-   MORNING_START=07:00
-   MORNING_END=09:00
-   EVENING_START=18:00
-   EVENING_END=20:00
-   QUOTE_LANGUAGE=both  # Options: en, th, both
-   ```
+Add your configuration:
+```env
+# Telegram Configuration
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+TELEGRAM_CHAT_ID=your_chat_id_here
 
-### 6. Run the Bot
+# Anthropic API (for AI quote generation)
+ANTHROPIC_API_KEY=your_api_key_here
 
-**Start the Telegram bot with scheduler:**
+# Schedule Configuration
+SCHEDULE_WINDOW=both  # Options: morning, evening, both, random
+QUOTE_LANGUAGE=th     # Options: en, th
+
+# Optional: Google Cloud
+GOOGLE_CLOUD_PROJECT=your_project_id
+GOOGLE_CLOUD_REGION=asia-southeast1
+```
+
+### 6. Run Locally
+
+**Start the Telegram bot:**
 ```bash
 python main.py
 ```
@@ -94,24 +123,56 @@ python main.py
 **Run the dashboard (optional):**
 ```bash
 python run_dashboard.py
-```
-or
-```bash
+# or
 streamlit run dashboard/app.py
 ```
 
-## Usage
+## 💬 Telegram Commands
 
-### Telegram Commands
-
-Once the bot is running, you can use these commands in Telegram:
-
-- `/start` - Welcome message
+- `/start` - Welcome message and setup guide
 - `/quote` - Get a random quote immediately
 - `/stats` - View your quote statistics
 - `/help` - Show help message
 
-### Dashboard Features
+## ☁️ Cloud Deployment
+
+### Google Cloud Functions (Recommended ⭐)
+
+**Free Tier Benefits:**
+- 2 million invocations/month
+- 400,000 GB-seconds compute time
+- 3 scheduler jobs
+- **Estimated cost: $0.18/month (6 THB)**
+
+**Quick Deploy:**
+```bash
+# Install Google Cloud SDK first
+curl https://sdk.cloud.google.com | bash
+
+# Deploy with one command
+./deploy_scripts/deploy_gcf.sh
+```
+
+**Detailed Guide:** See [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)
+
+**Test your deployment:**
+```bash
+# Get function URL
+gcloud functions describe daily-quote-bot \
+  --region=asia-southeast1 \
+  --format="value(httpsTrigger.url)"
+
+# Test endpoint
+curl "https://your-function-url/?period=both"
+```
+
+### PythonAnywhere (Alternative)
+
+**Limited free tier**, good for learning.
+
+**Guide:** See [docs/PYTHONANYWHERE_DEPLOY.md](docs/PYTHONANYWHERE_DEPLOY.md)
+
+## 📊 Dashboard Features
 
 The Streamlit dashboard provides:
 
@@ -122,29 +183,7 @@ The Streamlit dashboard provides:
 - 📤 **Manual Send**: Send a quote immediately
 - 🤖 **AI Generate**: Test quote generation
 
-## Configuration Options
-
-### Schedule Windows
-
-- `morning`: Send quotes between 7:00-9:00 AM
-- `evening`: Send quotes between 6:00-8:00 PM
-- `both`: Send twice daily (morning AND evening)
-
-### Quote Sources
-
-The bot uses a mix of:
-- **Local quotes** (from `data/quotes.json`)
-- **AI-generated quotes** (via GLM API / Zhipu AI)
-
-By default, there's a 30% chance of AI-generated quotes, but this is randomized.
-
-### Languages
-
-- `en`: English only
-- `th`: Thai only
-- `both`: Randomly mix English and Thai
-
-## Testing
+## 🧪 Testing
 
 **Test quote generation:**
 ```bash
@@ -156,70 +195,231 @@ python -c "from bot.quote_generator import get_quote; print(get_quote())"
 python -c "from bot.telegram_bot import send_quote_sync; send_quote_sync({'text': 'Test message', 'author': 'Test'})"
 ```
 
-## Cloud Deployment 🚀
-
-### Run 24/7 without keeping your computer on!
-
-#### Google Cloud Functions (Recommended - Free Tier)
-
-**Free Tier:** 2 million invocations/month + 3 scheduler jobs/month
-
-**Benefits:**
-- ✅ Runs 24/7 on Google's infrastructure
-- ✅ Auto-scales
-- ✅ Pay only for what you use (likely FREE)
-
-**Quick Start:**
-1. Install Google Cloud SDK: https://cloud.google.com/sdk/docs/install
-2. Create project at: https://console.cloud.google.com
-3. Follow deployment guide: [GOOGLE_CLOUD_DEPLOY.md](GOOGLE_CLOUD_DEPLOY.md)
-4. Run: `./deploy_gcf.sh`
-
-**Deploy with one command:**
+**Test Cloud Function locally:**
 ```bash
-./deploy_gcf.sh
+pip install functions-framework
+functions-framework --target=send_daily_quote --source=gcf_main.py
 ```
 
-#### PythonAnywhere (Alternative - Free Tier)
+**Test all endpoints:** See [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)
 
-Limited free tier, good for learning.
+## 💰 Cost Breakdown
 
-See: [PYTHONANYWHERE_DEPLOY.md](PYTHONANYWHERE_DEPLOY.md)
+### Personal Use (Current Setup)
 
----
+| Service | Usage | Monthly Cost |
+|---------|-------|--------------|
+| Cloud Functions | 60 invocations | **$0.00** ✅ (Free Tier) |
+| Cloud Scheduler | 2 jobs | **$0.00** ✅ (Free Tier) |
+| Anthropic API | 60 requests | **$0.18** |
+| **Total** | | **$0.18/month** (~6 THB) |
 
-## Troubleshooting
+**Annual Cost:** ~$2.16 (~72 THB/year)
+
+**Detailed Analysis:** See [docs/COST_BREAKDOWN.md](docs/COST_BREAKDOWN.md)
+
+### Scaling Examples
+
+| Users | Bots | Invocations/Month | Monthly Cost |
+|-------|------|------------------|--------------|
+| 1 (Personal) | 1 | 60 | $0.18 |
+| 3 (Family) | 3 | 180 | $0.84 |
+| 10 (Small) | 10 | 600 | $3.50 |
+| 1000 (Large) | 1000 | 60,000 | $379.70 |
+
+## 🔧 Configuration Options
+
+### Schedule Windows
+
+- `morning` - Send quotes between 7:00-9:00 AM
+- `evening` - Send quotes between 6:00-8:00 PM
+- `both` - Send twice daily (morning AND evening)
+- `random` - Send once at random time (10 AM - 5 PM)
+
+### Quote Sources
+
+The bot uses a mix of:
+- **Local quotes** (from `data/quotes.json`) - Fast, free
+- **AI-generated quotes** (via Anthropic Claude) - Unique, $0.003 each
+
+By default, AI quotes are always generated first with fallback to local.
+
+### Languages
+
+- `en` - English only
+- `th` - Thai only
+- `both` - Randomly mix English and Thai
+
+## 📖 Documentation
+
+- **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Complete Google Cloud deployment walkthrough
+- **[Testing Guide](docs/TESTING_GUIDE.md)** - Comprehensive testing procedures
+- **[Cost Breakdown](docs/COST_BREAKDOWN.md)** - Detailed pricing analysis and optimization
+- **[Google Cloud Deploy](docs/GOOGLE_CLOUD_DEPLOY.md)** - Original GCF documentation
+- **[PythonAnywhere Deploy](docs/PYTHONANYWHERE_DEPLOY.md)** - PythonAnywhere setup guide
+
+## 🛠️ Troubleshooting
 
 ### Bot not sending messages
 
-1. Check that your bot token is correct
-2. Verify your chat ID
-3. Check the logs in `daily_quote.log`
-4. Make sure the bot process is running
+1. ✅ Check bot token is correct
+2. ✅ Verify chat ID
+3. ✅ Check logs: `tail -f daily_quote.log`
+4. ✅ Make sure process is running: `ps aux | grep main.py`
 
-### Scheduler not working
+### Cloud Function not working
 
-1. Check that `data/scheduler.sqlite` exists
-2. Verify your time window settings in `.env`
-3. Check logs for scheduler errors
+1. ✅ Check function logs: `gcloud functions logs read daily-quote-bot --region=asia-southeast1`
+2. ✅ Verify environment variables in GCP console
+3. ✅ Test endpoint manually: `curl "function-url/?period=both"`
+4. ✅ Check scheduler jobs: `gcloud scheduler jobs list --location=asia-southeast1`
 
-### GLM API errors
+### Anthropic API errors
 
-1. Verify your API key is valid from https://open.bigmodel.cn/
-2. Check your API quota/usage limits
-3. The bot will fall back to local quotes if API fails
+1. ✅ Verify API key from https://console.anthropic.com/
+2. ✅ Check API quota/usage
+3. ✅ Bot will fall back to local quotes if API fails
 
-## Data Files
+### Scheduler not triggering
 
-- `data/quotes.json`: Local quote cache (can add your own quotes here)
-- `data/stats.json`: Statistics and history
-- `data/scheduler.sqlite`: Persistent scheduler data
-- `daily_quote.log`: Application logs
+1. ✅ Check scheduler status: `gcloud scheduler jobs list`
+2. ✅ Verify timezone settings
+3. ✅ Run manually: `gcloud scheduler jobs run daily-quote-morning --location=asia-southeast1`
+4. ✅ Check execution logs in Cloud Console
 
-## License
+## 📊 Monitoring
+
+### Cloud Console Monitoring
+
+- **Functions:** https://console.cloud.google.com/functions/list
+- **Scheduler:** https://console.cloud.google.com/cloudscheduler
+- **Logs:** https://console.cloud.google.com/logs/query
+
+### CLI Monitoring
+
+```bash
+# View function logs
+gcloud functions logs read daily-quote-bot --region=asia-southeast1 --limit=50
+
+# Check scheduler jobs
+gcloud scheduler jobs list --location=asia-southeast1
+
+# Get function details
+gcloud functions describe daily-quote-bot --region=asia-southeast1
+```
+
+### Local Monitoring
+
+```bash
+# Follow application logs
+tail -f daily_quote.log
+
+# Check if process is running
+ps aux | grep "python main.py"
+```
+
+## 🔄 Updates & Maintenance
+
+### Update deployed function
+
+```bash
+# Make changes to code
+# ...
+
+# Redeploy
+./deploy_scripts/deploy_gcf.sh
+```
+
+### Update scheduler
+
+```bash
+# Update schedule time
+gcloud scheduler jobs update daily-quote-morning \
+  --schedule="0 7 * * *" \
+  --time-zone="Asia/Bangkok" \
+  --location=asia-southeast1
+```
+
+### View statistics
+
+```bash
+# View local stats
+cat data/stats.json | python -m json.tool
+
+# Or via dashboard
+python run_dashboard.py
+```
+
+## 📝 Data Files
+
+- `data/quotes.json` - Local quote cache (add your own quotes here!)
+- `data/stats.json` - Statistics and quote history
+- `data/scheduler.sqlite` - Persistent scheduler data (local only)
+- `daily_quote.log` - Application logs
+
+## 🤝 Contributing
+
+Feel free to:
+- Add more quotes to `data/quotes.json`
+- Improve quote generation logic
+- Enhance the dashboard
+- Fix bugs or add features
+
+## 📄 License
 
 MIT License - feel free to use and modify!
 
-## Support
+## 💡 Tips
 
-For issues or questions, please check the logs first, then review the configuration.
+### Save on API Costs
+
+**Option 1: Use local quotes only**
+```env
+# Set in .env or config
+USE_AI_QUOTES=False
+```
+Cost: $0.00/month
+
+**Option 2: Hybrid approach (80% local, 20% AI)**
+```python
+# Modify quote_generator.py
+if random.random() < 0.8:
+    return get_local_quote()
+else:
+    return get_ai_quote()
+```
+Cost: $0.036/month (80% savings!)
+
+**Option 3: Cache AI quotes**
+```python
+# Generate 30 quotes/month, reuse them
+# Cost: $0.09/month (50% savings)
+```
+
+### Performance Optimization
+
+- Use **256 MB memory** (sufficient, cost-effective)
+- Target **< 2 seconds** execution time
+- Enable response caching where possible
+- Monitor logs for errors
+
+## 🔗 References
+
+- [Google Cloud Functions Documentation](https://cloud.google.com/functions/docs)
+- [Cloud Scheduler Documentation](https://cloud.google.com/scheduler/docs)
+- [Anthropic API Documentation](https://docs.anthropic.com/claude/docs)
+- [python-telegram-bot Documentation](https://docs.python-telegram-bot.org/)
+
+## 📞 Support
+
+For issues or questions:
+1. Check logs first
+2. Review troubleshooting section
+3. Check relevant documentation in `docs/`
+4. Review Cloud Console logs if deployed
+
+---
+
+**Made with ❤️ for daily inspiration**
+
+*Last updated: January 18, 2026*
