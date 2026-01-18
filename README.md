@@ -49,13 +49,10 @@ daily_quote/
 │   ├── deploy_gcf.sh            # Google Cloud Functions deploy
 │   └── pythonanywhere_run.py    # PythonAnywhere entry point
 ├── scripts/                      # Application scripts ⭐
-│   ├── gcf_main.py              # GCF implementation
-│   ├── main.py                  # Bot implementation
-│   └── run_dashboard.py         # Dashboard implementation
-├── gcf_main.py                   # GCF entry point (imports scripts/gcf_main.py)
+│   ├── gcf_main.py              # GCF entry point & implementation
+│   ├── main.py                  # Local bot entry point & implementation
+│   └── run_dashboard.py         # Dashboard entry point & implementation
 ├── gcf_requirements.txt          # GCF dependencies
-├── main.py                       # Local bot entry point (imports scripts/main.py)
-├── run_dashboard.py              # Dashboard entry point (imports scripts/run_dashboard.py)
 ├── requirements.txt              # Core dependencies
 ├── README.md                     # This file
 ├── CLAUDE.md                     # AI assistant documentation
@@ -121,12 +118,12 @@ GOOGLE_CLOUD_REGION=asia-southeast1
 
 **Start the Telegram bot:**
 ```bash
-python main.py
+python scripts/main.py
 ```
 
 **Run the dashboard (optional):**
 ```bash
-python run_dashboard.py
+python scripts/run_dashboard.py
 # or
 streamlit run dashboard/app.py
 ```
@@ -155,6 +152,8 @@ curl https://sdk.cloud.google.com | bash
 
 # Deploy with one command
 ./deploy_scripts/deploy_gcf.sh
+
+# Note: Deployment uses scripts/gcf_main.py as entry point
 ```
 
 **Detailed Guide:** See [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)
@@ -202,7 +201,7 @@ python -c "from bot.telegram_bot import send_quote_sync; send_quote_sync({'text'
 **Test Cloud Function locally:**
 ```bash
 pip install functions-framework
-functions-framework --target=send_daily_quote --source=gcf_main.py
+functions-framework --target=send_daily_quote --source=scripts/gcf_main.py
 ```
 
 **Test all endpoints:** See [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)
@@ -351,7 +350,7 @@ gcloud scheduler jobs update daily-quote-morning \
 cat data/stats.json | python -m json.tool
 
 # Or via dashboard
-python run_dashboard.py
+python scripts/run_dashboard.py
 ```
 
 ## 📝 Data Files

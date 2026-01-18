@@ -27,29 +27,22 @@ This document provides context for Claude AI assistants working on the Daily Quo
    - `stats.json` - Statistics and quote history
 
 4. **Scripts** (`scripts/`) ⭐
-   - `gcf_main.py` - Google Cloud Functions implementation
-   - `main.py` - Local bot implementation
-   - `run_dashboard.py` - Dashboard implementation
+   - `gcf_main.py` - Google Cloud Functions entry point & implementation
+   - `main.py` - Local bot entry point & implementation
+   - `run_dashboard.py` - Dashboard entry point & implementation
 
-5. **Entry Points** (root level)
-   - `gcf_main.py` - Imports from `scripts/gcf_main.py` for GCF deployment
-   - `main.py` - Imports from `scripts/main.py` for local running
-   - `run_dashboard.py` - Imports from `scripts/run_dashboard.py` for dashboard
-
-6. **Dashboard** (`dashboard/`)
+5. **Dashboard** (`dashboard/`)
    - Streamlit-based UI for monitoring and manual operations
 
 ### Deployment Options
 
 1. **Google Cloud Functions** (Production)
-   - Entry point: `gcf_main.py` → `send_daily_quote()`
-   - Implementation: `scripts/gcf_main.py`
+   - Entry point: `scripts/gcf_main.py` → `send_daily_quote()`
    - Scheduler: Cloud Scheduler (HTTP trigger)
    - Cost: ~$0.18/month (Free Tier + Anthropic API)
 
 2. **Local** (Development)
-   - Entry point: `main.py`
-   - Implementation: `scripts/main.py`
+   - Entry point: `scripts/main.py`
    - Scheduler: APScheduler (persistent via SQLite)
 
 3. **PythonAnywhere** (Alternative)
@@ -102,11 +95,13 @@ GOOGLE_CLOUD_REGION=asia-southeast1
 
 ## File Structure Changes
 
-**Recent reorganization:**
-- Created `docs/` - All documentation moved here
-- Created `deploy_scripts/` - Deployment scripts moved here
-- Updated README.md with new structure and badges
-- Added CLAUDE.md (this file)
+**Recent reorganizations:**
+1. Created `docs/` - All documentation moved here
+2. Created `deploy_scripts/` - Deployment scripts moved here
+3. Created `scripts/` - All entry point & implementation files consolidated here
+4. Removed root-level entry point wrappers (now use scripts/ directly)
+5. Updated README.md with new structure and badges
+6. Added CLAUDE.md (this file)
 
 **Old locations → New locations:**
 - `DEPLOYMENT_GUIDE.md` → `docs/DEPLOYMENT_GUIDE.md`
@@ -116,6 +111,10 @@ GOOGLE_CLOUD_REGION=asia-southeast1
 - `PYTHONANYWHERE_DEPLOY.md` → `docs/PYTHONANYWHERE_DEPLOY.md`
 - `deploy_gcf.sh` → `deploy_scripts/deploy_gcf.sh`
 - `pythonanywhere_run.py` → `deploy_scripts/pythonanywhere_run.py`
+- Root entry points → Consolidated into `scripts/`:
+  - `gcf_main.py` → `scripts/gcf_main.py`
+  - `main.py` → `scripts/main.py`
+  - `run_dashboard.py` → `scripts/run_dashboard.py`
 
 ## Common Tasks
 
@@ -139,7 +138,7 @@ send_quote_sync(quote)
 
 ```bash
 pip install functions-framework
-functions-framework --target=send_daily_quote --source=gcf_main.py
+functions-framework --target=send_daily_quote --source=scripts/gcf_main.py
 curl "http://localhost:8080/?period=both"
 ```
 
@@ -244,12 +243,12 @@ When adding features:
   - DEPLOYMENT_GUIDE.md - Step-by-step Google Cloud deployment
   - TESTING_GUIDE.md - Comprehensive testing procedures
   - COST_BREAKDOWN.md - Detailed pricing analysis
-- Organized folder structure (`docs/`, `deploy_scripts/`)
+- Organized folder structure (`docs/`, `deploy_scripts/`, `scripts/`)
 - Updated README.md with badges, quick links, cost breakdown
 
 ### Modified
 - `bot/telegram_bot.py` - Added error handling for read-only filesystem
-- `gcf_main.py` - Added random scheduling logic, health check
+- `scripts/gcf_main.py` - Added random scheduling logic, health check
 - `gcf_requirements.txt` - Added SQLAlchemy dependency
 
 ### Test Results
