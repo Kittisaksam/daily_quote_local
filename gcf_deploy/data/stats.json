@@ -1,0 +1,36 @@
+{
+  "total_quotes_sent": 3,
+  "local_quotes_sent": 1,
+  "ai_quotes_sent": 2,
+  "morning_quotes_sent": 0,
+  "evening_quotes_sent": 0,
+  "current_streak": 1,
+  "longest_streak": 1,
+  "last_sent": "2026-01-17T13:02:12.606866",
+  "history": [
+    {
+      "timestamp": "2026-01-17T13:00:25.797257",
+      "text": "Believe you can and you're halfway there.",
+      "author": "Theodore Roosevelt",
+      "language": "en",
+      "source": "local",
+      "time_period": "test"
+    },
+    {
+      "timestamp": "2026-01-17T13:01:42.780408",
+      "text": "```json\n{\n  \"text\": \"อย่ากลัวว่าทางจะช้าพอ แต่กลัวหน่อยว่าเราจะหยุดเดิน\",\n  \"author\": \"ไม่ระบุ\",\n  \"",
+      "author": "Claude AI",
+      "language": "th",
+      "source": "ai",
+      "time_period": "test"
+    },
+    {
+      "timestamp": "2026-01-17T13:02:12.606866",
+      "text": "Do not wait for the storm to pass; learn to dance in the rain, finding rhythm in every drop.",
+      "author": "Unknown",
+      "language": "en",
+      "source": "ai",
+      "time_period": "test"
+    }
+  ]
+}
