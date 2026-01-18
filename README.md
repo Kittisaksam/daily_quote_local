@@ -156,6 +156,38 @@ python -c "from bot.quote_generator import get_quote; print(get_quote())"
 python -c "from bot.telegram_bot import send_quote_sync; send_quote_sync({'text': 'Test message', 'author': 'Test'})"
 ```
 
+## Cloud Deployment 🚀
+
+### Run 24/7 without keeping your computer on!
+
+#### Google Cloud Functions (Recommended - Free Tier)
+
+**Free Tier:** 2 million invocations/month + 3 scheduler jobs/month
+
+**Benefits:**
+- ✅ Runs 24/7 on Google's infrastructure
+- ✅ Auto-scales
+- ✅ Pay only for what you use (likely FREE)
+
+**Quick Start:**
+1. Install Google Cloud SDK: https://cloud.google.com/sdk/docs/install
+2. Create project at: https://console.cloud.google.com
+3. Follow deployment guide: [GOOGLE_CLOUD_DEPLOY.md](GOOGLE_CLOUD_DEPLOY.md)
+4. Run: `./deploy_gcf.sh`
+
+**Deploy with one command:**
+```bash
+./deploy_gcf.sh
+```
+
+#### PythonAnywhere (Alternative - Free Tier)
+
+Limited free tier, good for learning.
+
+See: [PYTHONANYWHERE_DEPLOY.md](PYTHONANYWHERE_DEPLOY.md)
+
+---
+
 ## Troubleshooting
 
 ### Bot not sending messages
