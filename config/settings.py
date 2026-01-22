@@ -13,7 +13,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent.parent
 
 # Valid configuration values
-VALID_SCHEDULE_WINDOWS = ("morning", "evening", "both")
+VALID_SCHEDULE_WINDOWS = ("morning", "evening", "both", "daily", "random")
 VALID_LANGUAGES = ("en", "th", "both")
 
 # Default time windows

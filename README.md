@@ -41,6 +41,7 @@ daily_quote/
 │   └── app.py
 ├── docs/                         # Documentation 📚
 │   ├── DEPLOYMENT_GUIDE.md      # Google Cloud deployment guide
+│   ├── LOCAL_RUN_GUIDE.md       # Local bot running guide ⭐
 │   ├── TESTING_GUIDE.md         # Testing guide
 │   ├── COST_BREAKDOWN.md        # Cost analysis
 │   ├── GOOGLE_CLOUD_DEPLOY.md   # Original GCF guide
@@ -116,10 +117,30 @@ GOOGLE_CLOUD_REGION=asia-southeast1
 
 ### 6. Run Locally
 
-**Start the Telegram bot:**
+**Option A: Run in Terminal (Development)**
 ```bash
-python scripts/main.py
+# Install dependencies
+pip install -r requirements.txt
+
+# Run bot
+python -m scripts.main
 ```
+
+**Option B: Run in Background (Production - Recommended)**
+```bash
+# Setup virtual environment
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Start bot with nohup (runs 24/7, survives terminal close)
+nohup venv/bin/python -m scripts.main > bot_output.log 2>&1 &
+
+# Check status
+tail -f bot_output.log
+```
+
+📖 **Detailed Guide:** [docs/LOCAL_RUN_GUIDE.md](docs/LOCAL_RUN_GUIDE.md)
 
 **Run the dashboard (optional):**
 ```bash
@@ -255,6 +276,7 @@ By default, AI quotes are always generated first with fallback to local.
 
 ## 📖 Documentation
 
+- **[Local Run Guide](docs/LOCAL_RUN_GUIDE.md)** ⭐ - Run bot locally 24/7 with nohup
 - **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Complete Google Cloud deployment walkthrough
 - **[Testing Guide](docs/TESTING_GUIDE.md)** - Comprehensive testing procedures
 - **[Cost Breakdown](docs/COST_BREAKDOWN.md)** - Detailed pricing analysis and optimization

@@ -30,6 +30,24 @@ JOBS = {
 }
 
 
+# Standalone function for scheduled jobs (must be at module level for pickle)
+def send_scheduled_quote(time_period: str = "unknown"):
+    """Send a scheduled quote (standalone function for pickle compatibility).
+
+    Args:
+        time_period: 'morning', 'evening', 'daily', or 'random'
+    """
+    logger.info(f"Sending scheduled {time_period} quote...")
+
+    quote = get_quote(language=config.quote_language)
+    success = send_quote_sync(quote, time_period=time_period)
+
+    if success:
+        logger.info(f"Successfully sent {time_period} quote")
+    else:
+        logger.error(f"Failed to send {time_period} quote")
+
+
 class QuoteScheduler:
     """Scheduler for sending daily quotes."""
 
@@ -96,21 +114,7 @@ class QuoteScheduler:
         except Exception:
             pass
 
-    def send_daily_quote(self, time_period: str = "unknown"):
-        """Send a daily quote.
-
-        Args:
-            time_period: 'morning' or 'evening'
-        """
-        logger.info(f"Sending scheduled {time_period} quote...")
-
-        quote = get_quote(language=config.quote_language)
-        success = send_quote_sync(quote, time_period=time_period)
-
-        if success:
-            logger.info(f"Successfully sent {time_period} quote")
-        else:
-            logger.error(f"Failed to send {time_period} quote")
+    # send_daily_quote moved to module-level function send_scheduled_quote()
 
     def _schedule_quote(self, period: str, start_time: str, end_time: str):
         """Schedule a daily quote within a time window.
@@ -126,7 +130,7 @@ class QuoteScheduler:
         logger.info(f"Scheduling {period} quote at {random_time}")
 
         self.scheduler.add_job(
-            self.send_daily_quote,
+            send_scheduled_quote,
             trigger=CronTrigger(hour=random_time.hour, minute=random_time.minute),
             args=[period],
             id=job_info['id'],
@@ -136,18 +140,78 @@ class QuoteScheduler:
 
     def setup_schedule(self):
         """Setup the schedule based on configuration."""
-        # Remove existing jobs
+        # Remove all existing jobs
         for job_info in JOBS.values():
             self._remove_job(job_info['id'])
 
-        # Setup new schedule based on config
-        if config.schedule_window in ('morning', 'both'):
-            self._schedule_quote('morning', config.morning_start, config.morning_end)
+        # Support for 'daily' mode: 8 quotes per day (7:00-19:00)
+        if config.schedule_window == 'daily':
+            self._setup_daily_schedule(8, '07:00', '19:00')
+        # Support for 'random' mode: random time once per day
+        elif config.schedule_window == 'random':
+            import random
+            random_hour = random.randint(7, 19)
+            random_time = time(hour=random_hour, minute=random.randint(0, 59))
+            self.scheduler.add_job(
+                send_scheduled_quote,
+                trigger=CronTrigger(hour=random_time.hour, minute=random_time.minute),
+                args=['random'],
+                id='random_quote',
+                name='Random Daily Quote',
+                replace_existing=True
+            )
+            logger.info(f"Random daily quote scheduled at {random_time}")
+        # Original modes: morning, evening, both
+        else:
+            if config.schedule_window in ('morning', 'both'):
+                self._schedule_quote('morning', config.morning_start, config.morning_end)
 
-        if config.schedule_window in ('evening', 'both'):
-            self._schedule_quote('evening', config.evening_start, config.evening_end)
+            if config.schedule_window in ('evening', 'both'):
+                self._schedule_quote('evening', config.evening_start, config.evening_end)
 
         logger.info(f"Schedule setup complete: {config.schedule_window}")
+
+    def _setup_daily_schedule(self, times_per_day: int, start_time: str, end_time: str):
+        """Setup multiple daily quotes spread throughout the day.
+
+        Args:
+            times_per_day: Number of quotes to send per day
+            start_time: Start time window (HH:MM)
+            end_time: End time window (HH:MM)
+        """
+        start = self._parse_time(start_time)
+        end = self._parse_time(end_time)
+
+        # Calculate intervals (in minutes)
+        total_minutes = (end.hour - start.hour) * 60 + (end.minute - start.minute)
+        interval = total_minutes // (times_per_day + 1)
+
+        # Create time slots with some randomness
+        for i in range(times_per_day):
+            # Calculate base time for this slot
+            base_minutes = (start.hour * 60 + start.minute) + (interval * (i + 1))
+
+            # Add randomness: +/- 15 minutes from base time
+            random_offset = random.randint(-15, 15)
+            slot_minutes = base_minutes + random_offset
+
+            # Convert to time object
+            slot_hour = (slot_minutes // 60) % 24
+            slot_minute = slot_minutes % 60
+
+            # Create job
+            job_id = f'daily_quote_{i + 1}'
+            job_name = f'Daily Quote #{i + 1}'
+
+            self.scheduler.add_job(
+                send_scheduled_quote,
+                trigger=CronTrigger(hour=slot_hour, minute=slot_minute),
+                args=['daily'],
+                id=job_id,
+                name=job_name,
+                replace_existing=True
+            )
+            logger.info(f"Scheduled {job_name} at {slot_hour:02d}:{slot_minute:02d}")
 
     def get_next_run_time(self, job_id: str) -> Optional[datetime]:
         """Get the next run time for a job.
